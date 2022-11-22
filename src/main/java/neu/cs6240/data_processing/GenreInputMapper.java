@@ -8,7 +8,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import java.io.IOException;
 
 public class GenreInputMapper extends Mapper<LongWritable, Text, Text, Text> {
-    
+    private final static String genreOutputKey = "G-";
     private static String separator;
 
     @Override
@@ -20,7 +20,13 @@ public class GenreInputMapper extends Mapper<LongWritable, Text, Text, Text> {
     @Override
     public void map(final LongWritable offset, final Text lineText, final Context context) throws IOException, InterruptedException {
         String line = lineText.toString();
-        String[] lineData = line.split(separator);
-        System.out.println(lineData[0]);
+        if (!line.startsWith("#")) {
+            String[] lineData = line.split(separator);
+
+            String trackId = lineData[0];
+            String topGenre = genreOutputKey + lineData[1];
+
+            context.write(new Text(trackId), new Text(topGenre));
+        }
     }
 }

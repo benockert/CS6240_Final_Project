@@ -23,8 +23,10 @@ public class DataProcessingDriver extends Configured implements Tool {
         final Configuration jobConf = job.getConfiguration();
 
         jobConf.set("mapreduce.input.lyricsfile.separator", ",");
+        jobConf.set("mapreduce.input.lyricsindex.separator", ":");
         jobConf.set("mapreduce.input.genresfile.separator", "\t");
-        jobConf.set("mapreduce.output.textoutputformat.separator", "\t");
+        jobConf.set("mapreduce.reduce.inputvalues.separator", "-");
+        jobConf.set("mapreduce.output.textoutputformat.separator", ",");
 
         MultipleInputs.addInputPath(job, new Path(args[0]), TextInputFormat.class, LyricInputMapper.class);
         MultipleInputs.addInputPath(job, new Path(args[1]), TextInputFormat.class, GenreInputMapper.class);
