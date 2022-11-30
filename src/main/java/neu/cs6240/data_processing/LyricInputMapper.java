@@ -60,8 +60,8 @@ public class LyricInputMapper extends Mapper<LongWritable, Text, Text, Text> {
 
             List<Map.Entry<Integer, Integer>> topLyrics = this.sortMapByValuesAndReturnTop(h, 20);
             for (int i=0; i<topLyrics.toArray().length; i++) {
-                String lyricKeyAndIndex = lyricOutputKey + i + outputseparator + topLyrics.get(i).getKey();
-                context.write(new Text(trackId), new Text(lyricKeyAndIndex));
+                String lyricKeyIndexCount = lyricOutputKey + i + outputseparator + topLyrics.get(i).getKey() + outputseparator + topLyrics.get(i).getValue();
+                context.write(new Text(trackId), new Text(lyricKeyIndexCount));
             }
         }
     }

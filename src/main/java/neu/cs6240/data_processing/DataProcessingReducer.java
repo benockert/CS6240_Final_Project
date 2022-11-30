@@ -5,8 +5,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
     private static String inputvaluesseparator;
@@ -21,7 +20,7 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
 
     @Override
     public void reduce(final Text key, final Iterable<Text> values, final Context context) throws IOException, InterruptedException {
-        Map<Integer, Text> h = new HashMap<>();
+        Map<Integer, List<String>> h = new HashMap<>();
         Text genre = null;
 
         for (Text t : values) {
@@ -31,7 +30,9 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
             if (lyricOrGenre.equals("L")) {
                 Integer rank = Integer.parseInt(parts[1]);
                 String lyricIndex = parts[2];
-                h.put(rank, new Text(lyricIndex));
+                String lyricCountOccurrences = parts[3];
+                List<String> lyricData = new ArrayList<>(Arrays.asList(lyricIndex, lyricCountOccurrences));
+                h.put(rank, lyricData);
             }
             else if (lyricOrGenre.equals("G")) {
                 genre = new Text(parts[1]);
@@ -42,7 +43,7 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
         if (genre != null && h.entrySet().size() > 0) {
             StringBuilder sb = new StringBuilder(genre + outputseparator);
             for (int i =0; i<h.entrySet().size(); i++) {
-                sb.append(h.get(i));
+                sb.append(h.get(i).get(0) + outputseparator + h.get(i).get(1));
                 if (i<h.entrySet().size() - 1) {
                     sb.append(outputseparator);
                 }
