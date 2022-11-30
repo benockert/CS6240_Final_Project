@@ -18,7 +18,7 @@ aws.num.nodes=7
 # Less frequently modified fields:
 # Local Execution:
 hadoop.root=$(HADOOP_HOME)
-jar.name=mr-demo-1.0.jar
+jar.name=cs6240-final-project.jar
 jar.path=target/${jar.name}
 local.log=log
 # AWS EMR Execution:
