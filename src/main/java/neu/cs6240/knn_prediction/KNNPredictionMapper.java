@@ -37,7 +37,8 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
                 String[] attr = line.split(",");
 
                 //for each test record, create a max ordered Priority queue of distances. we will only maintain the K smallest distance nodes
-                map.put(attr[0], new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey())));
+                //attr[0] == unique TrackID from Test File
+                map.put(attr[0] + "," + attr[1], new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey())));
             }
         }
 
@@ -48,13 +49,18 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
         String trainRecord = lineText.toString();
         String trainGenre = trainRecord.split(",")[1];
         for(String testRecord : testFile) {
-            String testTrackID = testRecord.split(",")[0];
+            String[] testSplit = testRecord.split(",");
+            String testTrackID = testSplit[0];
+            String testGenre = testSplit[1];
+            String key = testTrackID + "," + testGenre;
             double dist = calcDistance(trainRecord, testRecord);
-            map.get(testTrackID).add(new Pair(dist, trainGenre));
 
-            //keep only the 10 closest
-            if(map.get(testTrackID).size() > K) {
-                map.get(testTrackID).poll();
+            //add training record's genre and distance from the test record into the test record's Priority Queue
+            map.get(key).add(new Pair(dist, trainGenre));
+
+            //keep only the 10 closest training records for this test record
+            if(map.get(key).size() > K) {
+                map.get(key).poll();
             }
         }
     }
@@ -64,17 +70,19 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
         List<String> test = Arrays.asList(testRecord.split(","));
 
         double distance = 0.0;
-        for(int i = 0; i < Math.max(train.size(), test.size()); i++) {
+        //lyric attributes begin at position 2
+        //train and test size <= 22
+        for(int i = 2; i < Math.max(train.size(), test.size()); i++) {
             if(i > train.size() || i > test.size() || !train.contains(test.get(i))) {
                 distance += 1.0;
             } else if(train.get(i).equals(test.get(i))) {
                 distance += 0.0;
             } else if(train.contains(test.get(i))) {
-                // divide by 30 to ensure that the value is less than 1. Assumes that records have at most 20 lyrics
+                // divide by 30 to ensure that the add value is less than 1. Assumes that records have at most 20 lyrics
                 distance += Math.abs(train.indexOf(test.get(i)) - i) / divisor;
             }
         }
-        return distance;
+        return Math.sqrt(distance);
     }
 
     @Override
@@ -84,6 +92,7 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
             Text newValue = new Text();
             while(!map.get(key).isEmpty()) {
                 Pair p = map.get(key).poll();
+                //key == distance, value == genre
                 newValue.set(p.getKey() + "," + p.getValue());
                 context.write(newKey, newValue);
             }
