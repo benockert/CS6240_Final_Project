@@ -1,6 +1,6 @@
 package neu.cs6240.knn_prediction;
 
-import javafx.util.Pair;
+//import javafx.util.Pair;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -12,14 +12,14 @@ import java.util.zip.GZIPInputStream;
 
 public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> {
     private ArrayList<String> testFile;
-    private HashMap<String, PriorityQueue<Pair<Double, String>>> map;
+    //private HashMap<String, PriorityQueue<Pair<Double, String>>> map;
     private final static int K = 10;
     private final static double divisor = 30.0;
 
     @Override
     public void setup(Context context) throws IOException, InterruptedException {
         testFile = new ArrayList<>();
-        map = new HashMap<>();
+        //map = new HashMap<>();
         URI[] files = context.getCacheFiles();
         for(URI f : files) {
             BufferedReader rdr = new BufferedReader(
@@ -37,7 +37,7 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
                 String[] attr = line.split(",");
 
                 //for each test record, create a max ordered Priority queue of distances. we will only maintain the K smallest distance nodes
-                map.put(attr[0], new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey())));
+                //map.put(attr[0], new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey())));
             }
         }
 
@@ -50,12 +50,12 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
         for(String testRecord : testFile) {
             String testTrackID = testRecord.split(",")[0];
             double dist = calcDistance(trainRecord, testRecord);
-            map.get(testTrackID).add(new Pair(dist, trainGenre));
+            //map.get(testTrackID).add(new Pair(dist, trainGenre));
 
             //keep only the 10 closest
-            if(map.get(testTrackID).size() > K) {
-                map.get(testTrackID).poll();
-            }
+//            if(map.get(testTrackID).size() > K) {
+//                map.get(testTrackID).poll();
+//            }
         }
     }
 
@@ -79,14 +79,14 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
 
     @Override
     public void cleanup(Context context) throws IOException, InterruptedException {
-        for(String key : map.keySet()) {
-            Text newKey = new Text(key);
-            Text newValue = new Text();
-            while(!map.get(key).isEmpty()) {
-                Pair p = map.get(key).poll();
-                newValue.set(p.getKey() + "," + p.getValue());
-                context.write(newKey, newValue);
-            }
-        }
+//        for(String key : map.keySet()) {
+//            Text newKey = new Text(key);
+//            Text newValue = new Text();
+//            while(!map.get(key).isEmpty()) {
+//                Pair p = map.get(key).poll();
+//                newValue.set(p.getKey() + "," + p.getValue());
+//                context.write(newKey, newValue);
+//            }
+//        }
     }
 }
