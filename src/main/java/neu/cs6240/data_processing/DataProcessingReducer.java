@@ -10,17 +10,19 @@ import java.util.*;
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
     private static String inputvaluesseparator;
     private static String outputseparator;
+    private static String colon;
 
     @Override
     public void setup(Context context) {
         Configuration configuration = context.getConfiguration();
         inputvaluesseparator = configuration.get("mapreduce.reduce.inputvalues.separator");
         outputseparator = configuration.get("mapreduce.output.textoutputformat.separator");
+        colon = configuration.get("mapreduce.input.lyricsindex.separator");
     }
 
     @Override
     public void reduce(final Text key, final Iterable<Text> values, final Context context) throws IOException, InterruptedException {
-        Map<Integer, List<String>> h = new HashMap<>();
+        Map<Integer, String> h = new HashMap<>();
         Text genre = null;
 
         for (Text t : values) {
@@ -28,11 +30,10 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
             String lyricOrGenre = parts[0];
 
             if (lyricOrGenre.equals("L")) {
-                Integer rank = Integer.parseInt(parts[1]);
-                String lyricIndex = parts[2];
-                String lyricCountOccurrences = parts[3];
-                List<String> lyricData = new ArrayList<>(Arrays.asList(lyricIndex, lyricCountOccurrences));
-                h.put(rank, lyricData);
+                String[] indexCount = parts[1].split(colon);
+                Integer index = Integer.parseInt(indexCount[0].toString());
+                String count = indexCount[1].toString();
+                h.put(index, count);
             }
             else if (lyricOrGenre.equals("G")) {
                 genre = new Text(parts[1]);
@@ -42,9 +43,9 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
         // only if there is genre and lyric data for a track
         if (genre != null && h.entrySet().size() > 0) {
             StringBuilder sb = new StringBuilder(genre + outputseparator);
-            for (int i =0; i<h.entrySet().size(); i++) {
-                sb.append(h.get(i).get(0) + outputseparator + h.get(i).get(1));
-                if (i<h.entrySet().size() - 1) {
+            for (int i =0; i<5000; i++) {
+                sb.append(h.getOrDefault(i, ""));
+                if (i<4999) {
                     sb.append(outputseparator);
                 }
             }
