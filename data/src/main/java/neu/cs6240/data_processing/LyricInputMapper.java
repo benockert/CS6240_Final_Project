@@ -52,17 +52,15 @@ public class LyricInputMapper extends Mapper<LongWritable, Text, Text, Text> {
 
             String trackId = lineData[0];
             for (int i=2; i<lineData.length; i++) {
-                String[] lyricData = lineData[i].split(lyricindexseparator);
-                Integer lyricIndex = Integer.parseInt(lyricData[0]);
-                Integer occurrences = Integer.parseInt(lyricData[1]);
-                h.put(lyricIndex, occurrences);
+                String lyricData = lineData[i];
+                context.write(new Text(trackId), new Text("L-" + lyricData));
             }
 
-            List<Map.Entry<Integer, Integer>> topLyrics = this.sortMapByValuesAndReturnTop(h, 20);
-            for (int i=0; i<topLyrics.toArray().length; i++) {
-                String lyricKeyIndexCount = lyricOutputKey + i + outputseparator + topLyrics.get(i).getKey() + outputseparator + topLyrics.get(i).getValue();
-                context.write(new Text(trackId), new Text(lyricKeyIndexCount));
-            }
+//            List<Map.Entry<Integer, Integer>> topLyrics = this.sortMapByValuesAndReturnTop(h, 20);
+//            for (int i=0; i<topLyrics.toArray().length; i++) {
+//                String lyricKeyIndexCount = lyricOutputKey + i + outputseparator + topLyrics.get(i).getKey() + outputseparator + topLyrics.get(i).getValue();
+//                context.write(new Text(trackId), new Text(lyricKeyIndexCount));
+//            }
         }
     }
 }
