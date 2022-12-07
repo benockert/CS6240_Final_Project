@@ -6,6 +6,8 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -20,6 +22,11 @@ import java.net.URI;
 
 public class KNNPredictionDriver extends Configured implements Tool {
     private static final Logger logger = LogManager.getLogger(KNNPredictionDriver.class);
+
+    public static enum AccuracyCounters {
+        TEST_RECORDS,
+        CORRECT_PREDICTION
+    }
 
     public int run(final String[] args) throws Exception {
         final Configuration conf = getConf();
@@ -36,6 +43,14 @@ public class KNNPredictionDriver extends Configured implements Tool {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
         FileOutputFormat.setOutputPath(job, new Path(args[2]));
+
+        //Counters
+        Counters counters = job.getCounters();
+        Counter c1 = counters.findCounter(AccuracyCounters.TEST_RECORDS);
+        System.out.println(c1.getDisplayName() + ":  " + c1.getValue());
+        Counter c2 = counters.findCounter(AccuracyCounters.CORRECT_PREDICTION);
+        System.out.println(c2.getDisplayName() + ":  " + c2.getValue());
+        System.out.println("KNN Prediction Accuracy: " + (((double)c2.getValue()) / ((double)c1.getValue())));
 
         job.addCacheFile(new URI("/prediction_data/text.txt"));
 
