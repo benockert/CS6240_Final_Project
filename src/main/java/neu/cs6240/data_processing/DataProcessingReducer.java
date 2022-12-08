@@ -56,9 +56,9 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
             }
 
             if(rand.nextDouble() < samplePercent) {
-                mos.write("test", lineText, NullWritable.get());
+                mos.write("test", new Text(sb.toString()), NullWritable.get());
             } else {
-                mos.write("train", lineText, NullWritable.get());
+                mos.write("train", new Text(sb.toString()), NullWritable.get());
             }
 
             //context.write(key, new Text(sb.toString()));
