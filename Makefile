@@ -6,14 +6,14 @@
 # Supports Hadoop and Pig (when you want to run Pig Latin, replace Hadoop with Pig)
 application.type=Hadoop
 # Local Execution:
-job.hadoop=neu.cs6240.test_train_split.TrainTestSplitDriver
+job.hadoop=neu.cs6240.knn_prediction.KNNPredictionDriver
 job.pig=pig-avg-joinFirst-v1.pig
-local.input=input_joined
-local.output=output_joined
+local.input=input_train
+local.output=output_KNN
 
 # AWS EMR Execution:
 aws.cluster.id=j-224WT8FP9TKSO
-aws.num.nodes=7
+aws.num.nodes=1
 
 # Less frequently modified fields:
 # Local Execution:

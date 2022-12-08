@@ -14,7 +14,6 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
     private ArrayList<String> testFile;
     private HashMap<String, PriorityQueue<Pair<Double, String>>> map;
     private final static int K = 10;
-    private final static double divisor = 30.0;
 
     @Override
     public void setup(Context context) throws IOException, InterruptedException {
@@ -22,15 +21,8 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
         map = new HashMap<>();
         URI[] files = context.getCacheFiles();
         for(URI f : files) {
-            BufferedReader rdr = new BufferedReader(
-                    new InputStreamReader(
-                            new GZIPInputStream(
-                                    new FileInputStream(
-                                            new File(f.toString())
-                                    )
-                            )
-                    )
-            );
+            File file = new File(f);
+            BufferedReader rdr = new BufferedReader(new FileReader(file));
             String line;
             while((line = rdr.readLine()) != null) {
                 testFile.add(line);
@@ -68,19 +60,14 @@ public class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> 
     public double calcDistance(String trainRecord, String testRecord) {
         List<String> train = Arrays.asList(trainRecord.split(","));
         List<String> test = Arrays.asList(testRecord.split(","));
-
+        if(train.size() != test.size()) return Double.MAX_VALUE;
         double distance = 0.0;
-        //lyric attributes begin at position 2
-        //train and test size <= 22
-        for(int i = 2; i < Math.max(train.size(), test.size()); i++) {
-            if(i > train.size() || i > test.size() || !train.contains(test.get(i))) {
-                distance += 1.0;
-            } else if(train.get(i).equals(test.get(i))) {
-                distance += 0.0;
-            } else if(train.contains(test.get(i))) {
-                // divide by 30 to ensure that the add value is less than 1. Assumes that records have at most 20 lyrics
-                distance += Math.abs(train.indexOf(test.get(i)) - i) / divisor;
-            }
+
+        //train and size should have the same number of lyric attributes
+        for(int i = 2; i < train.size(); i++) {
+            Double trainVal = Double.parseDouble(train.get(i));
+            Double testVal = Double.parseDouble(test.get(i));
+            distance += (double)Math.pow(trainVal - testVal, 2);
         }
         return Math.sqrt(distance);
     }
