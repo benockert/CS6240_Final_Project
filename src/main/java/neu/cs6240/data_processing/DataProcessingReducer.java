@@ -3,13 +3,15 @@ package neu.cs6240.data_processing;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import java.io.IOException;
 import java.util.*;
 
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
     private Random rand = new Random();
-    private Double samplePercent = 0.02;
+    private static final Double testPercent = 0.02;
+    private static final Double trainPercent = 1.0;
 
     private static String inputvaluesseparator;
     private static String outputseparator;
@@ -49,16 +51,17 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
         if (genre != null && h.entrySet().size() > 0) {
             StringBuilder sb = new StringBuilder(genre + outputseparator);
             for (int i =0; i<5000; i++) {
-                sb.append(h.getOrDefault(i, ""));
+                sb.append(h.getOrDefault(i, "0"));
                 if (i<4999) {
                     sb.append(outputseparator);
                 }
             }
 
-            if(rand.nextDouble() < samplePercent) {
-                mos.write("test", new Text(sb.toString()), NullWritable.get());
-            } else {
-                mos.write("train", new Text(sb.toString()), NullWritable.get());
+            double r = rand.nextDouble();
+            if(r < testPercent) {
+                mos.write("test", key, new Text(sb.toString()));
+            } else if(r <= trainPercent){
+                mos.write("train", key, new Text(sb.toString()));
             }
 
             //context.write(key, new Text(sb.toString()));
