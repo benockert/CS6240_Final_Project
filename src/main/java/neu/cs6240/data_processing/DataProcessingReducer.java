@@ -8,9 +8,13 @@ import java.io.IOException;
 import java.util.*;
 
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
+    private Random rand = new Random();
+    private Double samplePercent = 0.02;
+
     private static String inputvaluesseparator;
     private static String outputseparator;
     private static String colon;
+    private MultipleOutputs mos;
 
     @Override
     public void setup(Context context) {
@@ -18,6 +22,7 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
         inputvaluesseparator = configuration.get("mapreduce.reduce.inputvalues.separator");
         outputseparator = configuration.get("mapreduce.output.textoutputformat.separator");
         colon = configuration.get("mapreduce.input.lyricsindex.separator");
+        mos = new MultipleOutputs(context);
     }
 
     @Override
@@ -50,7 +55,18 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
                 }
             }
 
-            context.write(key, new Text(sb.toString()));
+            if(rand.nextDouble() < samplePercent) {
+                mos.write("test", lineText, NullWritable.get());
+            } else {
+                mos.write("train", lineText, NullWritable.get());
+            }
+
+            //context.write(key, new Text(sb.toString()));
         }
+    }
+
+    @Override
+    public void cleanup(Context context) throws IOException, InterruptedException {
+        mos.close();
     }
 }

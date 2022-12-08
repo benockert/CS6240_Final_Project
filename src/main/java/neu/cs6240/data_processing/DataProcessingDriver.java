@@ -36,6 +36,9 @@ public class DataProcessingDriver extends Configured implements Tool {
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
+
+        MultipleOutputs.addNamedOutput(job, "test", TextOutputFormat.class, Text.class, NullWritable.class);
+        MultipleOutputs.addNamedOutput(job, "train", TextOutputFormat.class, Text.class, NullWritable.class);
         FileOutputFormat.setOutputPath(job, new Path(args[2]));
 
         int res = job.waitForCompletion(true) ? 0 : 1;
