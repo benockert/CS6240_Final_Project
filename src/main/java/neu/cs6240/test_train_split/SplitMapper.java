@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class SplitMapper extends org.apache.hadoop.mapreduce.Mapper<LongWritable, Text, Text, NullWritable> {
     private Random rand = new Random();
-    private Double samplePercent = 0.002;
+    private Double samplePercent = 0.02;
     private MultipleOutputs mos;
 
     @Override

@@ -1,13 +1,11 @@
 package neu.cs6240.knn_prediction;
 
 import javafx.util.Pair;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.PriorityQueue;
 
 public class KNNPredictionReducer extends Reducer<Text, Text, Text, Text> {
@@ -22,11 +20,12 @@ public class KNNPredictionReducer extends Reducer<Text, Text, Text, Text> {
 
         //create MaxHeap to keep track of the K closest Genre's to this Test Record key
         PriorityQueue<Pair<Double, String>> pq = new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey()));
+        double minDistance = Double.MAX_VALUE;
         for (Text t : values) {
             String[] parts = t.toString().split(",");
             Double dist = Double.parseDouble(parts[0]);
             String genre = parts[1];
-
+            minDistance = Math.min(dist, minDistance);
             pq.add(new Pair(dist, genre));
 
             if(pq.size() > K) {
@@ -35,25 +34,36 @@ public class KNNPredictionReducer extends Reducer<Text, Text, Text, Text> {
         }
 
         //find which genre is repeated the most in the K nearest neighbors
-        HashMap<String, Integer> genreMap = new HashMap<>();
-        int maxGenreCount = 0;
-        String maxGenre = null;
+//        HashMap<String, Integer> genreMap = new HashMap<>();
+//        int maxGenreVal = 0;
+//        String predictGenre = null;
+//        while(!pq.isEmpty()) {
+//            Pair<Double, String> p = pq.poll();
+//            genreMap.put(p.getValue(), genreMap.getOrDefault(p.getValue(), 0) + 1);
+//            if(genreMap.get(p.getValue()) > maxGenreVal) {
+//                maxGenreVal = genreMap.get(p.getValue());
+//                predictGenre = p.getValue();
+//            }
+//        }
+        HashMap<String, Double> genreMap = new HashMap<>();
+        double maxDistance = pq.peek().getKey(), range = maxDistance - minDistance, maxGenreVal = 0.0;
+        String predictGenre = null;
         while(!pq.isEmpty()) {
             Pair<Double, String> p = pq.poll();
-            genreMap.put(p.getValue(), genreMap.getOrDefault(p.getValue(), 0) + 1);
-            if(genreMap.get(p.getValue()) > maxGenreCount) {
-                maxGenreCount = genreMap.get(p.getValue());
-                maxGenre = p.getValue();
+            genreMap.put(p.getValue(), genreMap.getOrDefault(p.getValue(), 0.0) + (range / p.getKey()));
+            if(genreMap.get(p.getValue()) > maxGenreVal) {
+                maxGenreVal = genreMap.get(p.getValue());
+                predictGenre = p.getValue();
             }
         }
 
         //update counters
         context.getCounter(KNNPredictionDriver.AccuracyCounters.TEST_RECORDS).increment(1);
-        if(maxGenre.equals(testGenre)) {
+        if(predictGenre.equals(testGenre)) {
             context.getCounter(KNNPredictionDriver.AccuracyCounters.CORRECT_PREDICTION).increment(1);
         }
 
         //write to context
-        context.write(new Text(trackID), new Text(maxGenre));
+        context.write(new Text(trackID), new Text(predictGenre));
     }
 }
