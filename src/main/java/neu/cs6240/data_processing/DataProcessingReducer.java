@@ -3,14 +3,20 @@ package neu.cs6240.data_processing;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import java.io.IOException;
 import java.util.*;
 
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
+    private Random rand = new Random();
+    private static final Double testPercent = 0.02;
+    private static final Double trainPercent = 1.0;
+
     private static String inputvaluesseparator;
     private static String outputseparator;
     private static String colon;
+    private MultipleOutputs mos;
 
     @Override
     public void setup(Context context) {
@@ -18,6 +24,7 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
         inputvaluesseparator = configuration.get("mapreduce.reduce.inputvalues.separator");
         outputseparator = configuration.get("mapreduce.output.textoutputformat.separator");
         colon = configuration.get("mapreduce.input.lyricsindex.separator");
+        mos = new MultipleOutputs(context);
     }
 
     @Override
@@ -50,7 +57,19 @@ public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
                 }
             }
 
-            context.write(key, new Text(sb.toString()));
+            double r = rand.nextDouble();
+            if(r < testPercent) {
+                mos.write("test", key, new Text(sb.toString()));
+            } else if(r <= trainPercent){
+                mos.write("train", key, new Text(sb.toString()));
+            }
+
+            //context.write(key, new Text(sb.toString()));
         }
+    }
+
+    @Override
+    public void cleanup(Context context) throws IOException, InterruptedException {
+        mos.close();
     }
 }
