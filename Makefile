@@ -4,15 +4,17 @@
 # -----------------------------------------------------------
 # Commonly modified fields:
 # Supports Hadoop and Pig (when you want to run Pig Latin, replace Hadoop with Pig)
-application.type=Hadoop
+application.type=KNN
 # Local Execution:
 job.hadoop=neu.cs6240.knn_prediction.KNNPredictionDriver
 job.pig=pig-avg-joinFirst-v1.pig
+job.preprocessing=neu.cs6240.data_processing.DataProcessingDriver
+job.knn=neu.cs6240.knn_prediction.KNNPredictionDriver
 local.input=input_train
 local.output=output_KNN
 
 # AWS EMR Execution:
-aws.cluster.id=j-224WT8FP9TKSO
+aws.cluster.id=j-26FUI73EU0J5O
 aws.num.nodes=1
 
 # Less frequently modified fields:
@@ -30,6 +32,12 @@ aws.input=input
 aws.output=output
 aws.log.dir=log
 aws.instance.type=m4.xlarge
+aws.preprocess_input1=input/lyics
+aws.preprocess_input2=input/genres
+aws.preprocess_output=output_preprocessing
+aws.knn_input1=input_train
+aws.knn_input2=input_test
+aws.knn_output=output_knn
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
@@ -107,6 +115,15 @@ aws-step-pig: jar upload-pig delete-output-aws
 	--cluster-id ${aws.cluster.id}  \
 	--steps Type=Pig,Name="Pig Application",ActionOnFailure=CONTINUE,Args=["-f","s3://${aws.bucket.name}/${job.pig}","-p","INPUT=s3://${aws.bucket.name}/${aws.input}","-p","OUTPUT=s3://${aws.bucket.name}/${aws.output}"]
 
+aws-step-preprocessing: jar upload-jar delete-output-aws
+	aws emr add-steps \
+	--cluster-id ${aws.cluster.id}  \
+	--steps '[{"Args":["${job.preprocessing}","s3://${aws.bucket.name}/${aws.preprocess_input1}","s3://${aws.bucket.name}/${aws.preprocess_input2}","s3://${aws.bucket.name}/${aws.preprocess_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
+
+aws-step-knn: jar upload-jar delete-output-aws
+	aws emr add-steps \
+	--cluster-id ${aws.cluster.id}  \
+	--steps '[{"Args":["${job.knn}","s3://${aws.bucket.name}/${aws.knn_input1}","s3://${aws.bucket.name}/${aws.knn_input2}","s3://${aws.bucket.name}/${aws.knn_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
 aws-step:
 ifeq (${application.type},Hadoop)
@@ -114,6 +131,12 @@ ifeq (${application.type},Hadoop)
 endif
 ifeq (${application.type},Pig)
 	make aws-step-pig
+endif
+ifeq (${application.type},Preprocessing)
+	make aws-step-preprocessing
+endif
+ifeq (${application.type},KNN)
+	make aws-step-knn
 endif
 
 aws-end-cluster:
@@ -138,6 +161,18 @@ aws-jar: jar upload-jar delete-output-aws
 		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
 	    --applications Name=Hadoop \
 	    --steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"TERMINATE_CLUSTER","Name":"Custom JAR"}]' \
+		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
+		--use-default-roles \
+		--enable-debugging \
+		--auto-terminate
+
+aws-pre: jar upload-jar delete-output-aws
+	aws emr create-cluster \
+		--name "WordCount MR Cluster" \
+		--release-label ${aws.emr.release} \
+		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
+	    --applications Name=Hadoop \
+	    --steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}","s3://${aws.bucket.name}/${aws.input_test}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"TERMINATE_CLUSTER","Name":"Custom JAR"}]' \
 		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
 		--use-default-roles \
 		--enable-debugging \

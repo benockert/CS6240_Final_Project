@@ -10,8 +10,8 @@ import java.util.*;
 
 public class DataProcessingReducer extends Reducer<Text, Text, Text, Text> {
     private Random rand = new Random();
-    private static final Double testPercent = 0.02;
-    private static final Double trainPercent = 1.0;
+    private static final Double testPercent = 0.01;
+    private static final Double trainPercent = 0.05;
 
     private static String inputvaluesseparator;
     private static String outputseparator;
