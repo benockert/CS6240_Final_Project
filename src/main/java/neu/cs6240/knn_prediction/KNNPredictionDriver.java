@@ -1,6 +1,6 @@
 package neu.cs6240.knn_prediction;
 
-import javafx.util.Pair;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -30,8 +30,26 @@ public class KNNPredictionDriver extends Configured implements Tool {
         CORRECT_PREDICTION
     }
 
+    public static class Pair {
+        Double key;
+        String value;
+
+        public Pair(Double key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public Double getKey() {
+            return key;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
     public static class KNNPredictionMapper extends Mapper<LongWritable, Text, Text, Text> {
-        private HashMap<String, PriorityQueue<Pair<Double, String>>> map = new HashMap<>();
+        private HashMap<String, PriorityQueue<Pair>> map = new HashMap<>();
         private final static int K = 10;
 
         @Override
@@ -101,7 +119,7 @@ public class KNNPredictionDriver extends Configured implements Tool {
             String testGenre = keySplit[1];
 
             //create MaxHeap to keep track of the K closest Genre's to this Test Record key
-            PriorityQueue<Pair<Double, String>> pq = new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey()));
+            PriorityQueue<Pair> pq = new PriorityQueue<>((p1, p2) -> Double.compare(p2.getKey(), p1.getKey()));
             double minDistance = Double.MAX_VALUE;
             for (Text t : values) {
                 String[] parts = t.toString().split(",");
@@ -119,7 +137,7 @@ public class KNNPredictionDriver extends Configured implements Tool {
             double maxDistance = pq.peek().getKey(), range = maxDistance - minDistance, maxGenreVal = 0.0;
             String predictGenre = null;
             while(!pq.isEmpty()) {
-                Pair<Double, String> p = pq.poll();
+                Pair p = pq.poll();
                 genreMap.put(p.getValue(), genreMap.getOrDefault(p.getValue(), 0.0) + (range / p.getKey()));
                 if(genreMap.get(p.getValue()) > maxGenreVal) {
                     maxGenreVal = genreMap.get(p.getValue());
