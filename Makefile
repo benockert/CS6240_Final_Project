@@ -4,15 +4,26 @@
 # -----------------------------------------------------------
 # Commonly modified fields:
 # Supports Hadoop and Pig (when you want to run Pig Latin, replace Hadoop with Pig)
-application.type=Hadoop
+application.type=Preprocess
+
 # Local Execution:
-job.hadoop=neu.cs6240.knn_prediction.KNNPredictionDriver
-job.pig=pig-avg-joinFirst-v1.pig
-local.input=input_train
-local.output=output_KNN
+job.preprocessing=neu.cs6240.knn_pre.KNNPreProcessingDriver
+job.knn=neu.cs6240.knn_prediction.KNNPredictionDriver
+job.data_processing=neu.cs6240.data_processing.DataProcessingDriver
+
+local.input=input/lyrics
+local.output=output
+local.input2=input/genres
+
+local.preprocess_input1=input_train
+local.preprocess_input2=input_test
+local.preprocess_output=output_preprocessing
+
+local.knn_input=input_prediction
+local.knn_output=output_knn_final
 
 # AWS EMR Execution:
-aws.cluster.id=j-224WT8FP9TKSO
+aws.cluster.id=j-225AQ92IO7SVW
 aws.num.nodes=1
 
 # Less frequently modified fields:
@@ -26,10 +37,22 @@ aws.emr.release=emr-5.17.0
 aws.region=us-east-1
 aws.bucket.name=junda-cs6240
 aws.subnet.id=subnet-6356553a
-aws.input=input
-aws.output=output
 aws.log.dir=log
-aws.instance.type=m4.xlarge
+aws.instance.type=m5.xlarge
+
+#AWS DataProcessing
+aws.input=input/lyrics/
+aws.input2=input/genres/
+aws.output=output
+
+#AWS PreProcessing
+aws.preprocess_input1=input_train
+aws.preprocess_input2=input_test
+aws.preprocess_output=output_preprocessing
+
+#AWS KNN Prediction
+aws.knn_input=input_prediction
+aws.knn_output=output_knn_final
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
@@ -47,18 +70,24 @@ clean-local-log:
 # Runs standalone
 # Make sure Hadoop  is set up (in /etc/hadoop files) for standalone operation (not pseudo-cluster).
 # https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html#Standalone_Operation
-local-hadoop: jar clean-local-output
-	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.hadoop} ${local.input} ${local.output}
+local-data: jar clean-local-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.data_processing} ${local.input} ${local.input2} ${local.output}
 
-local-pig: jar clean-local-output
-	pig -p INPUT=${local.input} -p OUTPUT=${local.output} src/main/pig/${job.pig}
+local-preprocessing: jar clean-local-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.preprocessing} ${local.preprocess_input1} ${local.preprocess_input2} ${local.preprocess_output}
+
+local-knn: jar clean-local-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.knn} ${local.knn_input} ${local.knn_output}
 
 local:
-ifeq (${application.type},Hadoop)
-	make local-hadoop
+ifeq (${application.type},Data)
+	make local-data
 endif
-ifeq (${application.type},Pig)
-	make local-pig
+ifeq (${application.type},Preprocess)
+	make local-preprocessing
+endif
+ifeq (${application.type},KNN)
+	make local-knn
 endif
 
 
@@ -75,6 +104,7 @@ delete-aws:
 # Upload data to S3 input dir.
 upload-input-aws: make-bucket
 	aws s3 sync ${local.input} s3://${aws.bucket.name}/${aws.input}
+	aws s3 sync ${local.input2} s3://${aws.bucket.name}/${aws.input2}
 
 # Delete S3 output dir.
 delete-output-aws:
@@ -97,23 +127,30 @@ aws-cluster:
 	--use-default-roles
 
 
-aws-step-hadoop: jar upload-jar delete-output-aws
+aws-step-data: jar upload-jar delete-output-aws
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
-	--steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
+	--steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.input2}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
-aws-step-pig: jar upload-pig delete-output-aws
+aws-step-preprocessing: jar upload-jar delete-output-aws
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
-	--steps Type=Pig,Name="Pig Application",ActionOnFailure=CONTINUE,Args=["-f","s3://${aws.bucket.name}/${job.pig}","-p","INPUT=s3://${aws.bucket.name}/${aws.input}","-p","OUTPUT=s3://${aws.bucket.name}/${aws.output}"]
+	--steps '[{"Args":["${job.preprocessing}","s3://${aws.bucket.name}/${aws.preprocess_input1}","s3://${aws.bucket.name}/${aws.preprocess_input2}","s3://${aws.bucket.name}/${aws.preprocess_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
+aws-step-knn: jar upload-jar delete-output-aws
+	aws emr add-steps \
+	--cluster-id ${aws.cluster.id}  \
+	--steps '[{"Args":["${job.knn}","s3://${aws.bucket.name}/${aws.knn_input}","s3://${aws.bucket.name}/${aws.knn_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
 aws-step:
-ifeq (${application.type},Hadoop)
-	make aws-step-hadoop
+ifeq (${application.type},Data)
+	make aws-step-data
 endif
-ifeq (${application.type},Pig)
-	make aws-step-pig
+ifeq (${application.type},Preprocess)
+	make aws-step-preprocessing
+endif
+ifeq (${application.type},KNN)
+	make aws-step-knn
 endif
 
 aws-end-cluster:
@@ -154,7 +191,7 @@ endif
 # Download output from S3.
 download-output-aws: clean-local-output
 	mkdir ${local.output}
-	aws s3 sync s3://${aws.bucket.name}/${aws.output} ${local.output}
+	aws s3 sync s3://${aws.bucket.name}/${aws.knn_output} ${local.knn_output}
 
 download-log-aws: clean-local-log
 	mkdir ${local.log}
