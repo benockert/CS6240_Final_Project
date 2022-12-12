@@ -1,0 +1,57 @@
+2022-12-12T06:01:40.804Z INFO Ensure step 1 jar file s3://junda-cs6240/cs6240-final-project.jar
+2022-12-12T06:01:41.254Z INFO StepRunner: Created Runner for step 1
+INFO startExec 'hadoop jar /mnt/var/lib/hadoop/steps/s-3AEA20B8ZDB72/cs6240-final-project.jar neu.cs6240.data_processing.DataProcessingDriver s3://junda-cs6240/input/lyrics s3://junda-cs6240/input/genres s3://junda-cs6240/output'
+INFO Environment:
+  PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/opt/aws/bin
+  LESS_TERMCAP_md=[01;38;5;208m
+  LESS_TERMCAP_me=[0m
+  HISTCONTROL=ignoredups
+  LESS_TERMCAP_mb=[01;31m
+  AWS_AUTO_SCALING_HOME=/opt/aws/apitools/as
+  UPSTART_JOB=rc
+  LESS_TERMCAP_se=[0m
+  HISTSIZE=1000
+  HADOOP_ROOT_LOGGER=INFO,DRFA
+  JAVA_HOME=/etc/alternatives/jre
+  AWS_DEFAULT_REGION=us-east-1
+  AWS_ELB_HOME=/opt/aws/apitools/elb
+  LESS_TERMCAP_us=[04;38;5;111m
+  EC2_HOME=/opt/aws/apitools/ec2
+  TERM=linux
+  runlevel=3
+  LANG=en_US.UTF-8
+  AWS_CLOUDWATCH_HOME=/opt/aws/apitools/mon
+  MAIL=/var/spool/mail/hadoop
+  LESS_TERMCAP_ue=[0m
+  LOGNAME=hadoop
+  PWD=/
+  LANGSH_SOURCED=1
+  HADOOP_CLIENT_OPTS=-Djava.io.tmpdir=/mnt/var/lib/hadoop/steps/s-3AEA20B8ZDB72/tmp
+  _=/etc/alternatives/jre/bin/java
+  CONSOLETYPE=serial
+  RUNLEVEL=3
+  LESSOPEN=||/usr/bin/lesspipe.sh %s
+  previous=N
+  UPSTART_EVENTS=runlevel
+  AWS_PATH=/opt/aws
+  USER=hadoop
+  UPSTART_INSTANCE=
+  PREVLEVEL=N
+  HADOOP_LOGFILE=syslog
+  HOSTNAME=ip-172-31-17-148
+  HADOOP_LOG_DIR=/mnt/var/log/hadoop/steps/s-3AEA20B8ZDB72
+  EC2_AMITOOL_HOME=/opt/aws/amitools/ec2
+  SHLVL=5
+  HOME=/home/hadoop
+  HADOOP_IDENT_STRING=hadoop
+INFO redirectOutput to /mnt/var/log/hadoop/steps/s-3AEA20B8ZDB72/stdout
+INFO redirectError to /mnt/var/log/hadoop/steps/s-3AEA20B8ZDB72/stderr
+INFO Working dir /mnt/var/lib/hadoop/steps/s-3AEA20B8ZDB72
+INFO ProcessRunner started child process 20547 :
+hadoop   20547  5282  0 06:01 ?        00:00:00 bash /usr/lib/hadoop/bin/hadoop jar /mnt/var/lib/hadoop/steps/s-3AEA20B8ZDB72/cs6240-final-project.jar neu.cs6240.data_processing.DataProcessingDriver s3://junda-cs6240/input/lyrics s3://junda-cs6240/input/genres s3://junda-cs6240/output
+2022-12-12T06:01:45.261Z INFO HadoopJarStepRunner.Runner: startRun() called for s-3AEA20B8ZDB72 Child Pid: 20547
+INFO Synchronously wait child process to complete : hadoop jar /mnt/var/lib/hadoop/steps/s-3AEA20B8...
+INFO waitProcessCompletion ended with exit code 0 : hadoop jar /mnt/var/lib/hadoop/steps/s-3AEA20B8...
+INFO total process run time: 54 seconds
+2022-12-12T06:02:37.652Z INFO Step created jobs: job_1670824457149_0001
+2022-12-12T06:02:37.652Z INFO Step succeeded with exitCode 0 and took 54 seconds

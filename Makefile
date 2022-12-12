@@ -23,8 +23,8 @@ local.knn_input=input_prediction
 local.knn_output=output_knn_final
 
 # AWS EMR Execution:
-aws.cluster.id=j-225AQ92IO7SVW
-aws.num.nodes=1
+aws.cluster.id=j-1WP8SSJOB751E
+aws.num.nodes=7
 
 # Less frequently modified fields:
 # Local Execution:
@@ -41,8 +41,8 @@ aws.log.dir=log
 aws.instance.type=m5.xlarge
 
 #AWS DataProcessing
-aws.input=input/lyrics/
-aws.input2=input/genres/
+aws.input=input/lyrics
+aws.input2=input/genres
 aws.output=output
 
 #AWS PreProcessing
@@ -73,10 +73,12 @@ clean-local-log:
 local-data: jar clean-local-output
 	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.data_processing} ${local.input} ${local.input2} ${local.output}
 
-local-preprocessing: jar clean-local-output
+local-preprocessing:
+	rm -rf ${local.preprocess_output}*
 	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.preprocessing} ${local.preprocess_input1} ${local.preprocess_input2} ${local.preprocess_output}
 
-local-knn: jar clean-local-output
+local-knn:
+	rm -rf ${local.knn_output}*
 	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.knn} ${local.knn_input} ${local.knn_output}
 
 local:
@@ -130,14 +132,16 @@ aws-cluster:
 aws-step-data: jar upload-jar delete-output-aws
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
-	--steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.input2}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
+	--steps '[{"Args":["${job.data_processing}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.input2}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
-aws-step-preprocessing: jar upload-jar delete-output-aws
+aws-step-preprocessing:
+	aws s3 rm s3://${aws.bucket.name}/ --recursive --exclude "*" --include "${aws.preprocess_output}*"
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
 	--steps '[{"Args":["${job.preprocessing}","s3://${aws.bucket.name}/${aws.preprocess_input1}","s3://${aws.bucket.name}/${aws.preprocess_input2}","s3://${aws.bucket.name}/${aws.preprocess_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
 
-aws-step-knn: jar upload-jar delete-output-aws
+aws-step-knn:
+	aws s3 rm s3://${aws.bucket.name}/ --recursive --exclude "*" --include "${aws.knn_output}*"
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
 	--steps '[{"Args":["${job.knn}","s3://${aws.bucket.name}/${aws.knn_input}","s3://${aws.bucket.name}/${aws.knn_output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"CONTINUE","Name":"JAR Application"}]'
@@ -156,42 +160,22 @@ endif
 aws-end-cluster:
 	aws emr terminate-clusters --cluster-ids ${aws.cluster.id}
 
-aws-pig: jar upload-pig delete-output-aws
-	aws emr create-cluster \
-		--name "Pig cluster" \
-		--log-uri s3://${aws.bucket.name} \
-		--release-label ${aws.emr.release} \
-		--applications Name=Pig \
-		--use-default-roles \
-		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
-		--steps Type=Pig,Name="Pig Application",ActionOnFailure=CONTINUE,Args=["-f","s3://${aws.bucket.name}/${job.pig}","-p","INPUT=s3://${aws.bucket.name}/${aws.input}","-p","OUTPUT=s3://${aws.bucket.name}/${aws.output}"] \
-		--enable-debugging \
-    --auto-terminate
-
-aws-jar: jar upload-jar delete-output-aws
-	aws emr create-cluster \
-		--name "WordCount MR Cluster" \
-		--release-label ${aws.emr.release} \
-		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
-	    --applications Name=Hadoop \
-	    --steps '[{"Args":["${job.hadoop}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"TERMINATE_CLUSTER","Name":"Custom JAR"}]' \
-		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
-		--use-default-roles \
-		--enable-debugging \
-		--auto-terminate
-
-aws:
-ifeq (${application.type},Hadoop)
-	make aws-jar
-endif
-ifeq (${application.type},Pig)
-	make aws-pig
-endif
-
 # Download output from S3.
-download-output-aws: clean-local-output
+download-output-data: clean-local-output
+	mkdir ${local.output}
+	aws s3 sync s3://${aws.bucket.name}/${aws.output} ${local.output}
+
+download-output-knn: clean-local-output
 	mkdir ${local.output}
 	aws s3 sync s3://${aws.bucket.name}/${aws.knn_output} ${local.knn_output}
+
+download-output:
+ifeq (${application.type},Data)
+	make download-output-data
+endif
+ifeq (${application.type},KNN)
+	make download-output-knn
+endif
 
 download-log-aws: clean-local-log
 	mkdir ${local.log}
