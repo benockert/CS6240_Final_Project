@@ -83,15 +83,16 @@ public class KNNPredictionDriver extends Configured implements Tool {
             List<String> train = Arrays.asList(trainRecord.split(","));
             List<String> test = Arrays.asList(testRecord.split(","));
             if(train.size() != test.size()) return Double.MAX_VALUE;
+            int Q = 5000;
             double distance = 0.0;
 
             //train and size should have the same number of lyric attributes
             for(int i = 2; i < train.size(); i++) {
                 Double trainVal = Double.parseDouble(train.get(i));
                 Double testVal = Double.parseDouble(test.get(i));
-                distance += (double)Math.pow(trainVal - testVal, 2);
+                distance += (double)Math.pow(trainVal - testVal, Q);
             }
-            return Math.sqrt(distance);
+            return Math.pow(distance, 1.0 / (double) Q);
         }
 
         @Override
