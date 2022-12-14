@@ -24,7 +24,7 @@ local.knn_output=output_knn_final
 
 # AWS EMR Execution:
 aws.cluster.id=j-1WP8SSJOB751E
-aws.num.nodes=7
+aws.num.nodes=3
 
 # Less frequently modified fields:
 # Local Execution:
@@ -53,6 +53,17 @@ aws.preprocess_output=output_preprocessing
 #AWS KNN Prediction
 aws.knn_input=input_prediction
 aws.knn_output=output_knn_final
+
+#AWS DataProcessing on Hive
+local.hive.input=input
+local.hive.script=hive
+aws.hive.script=script
+aws.hive.bucket_name=bockert-cs6240-hive
+aws.hive.input=hive_input
+aws.hive.output=hive_output
+aws.hive.application_type=Hive
+aws.emr.hive.release=emr-5.36.0
+aws.emr.hive.applications=Hive
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
@@ -128,7 +139,6 @@ aws-cluster:
 	--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
 	--use-default-roles
 
-
 aws-step-data: jar upload-jar delete-output-aws
 	aws emr add-steps \
 	--cluster-id ${aws.cluster.id}  \
@@ -199,3 +209,25 @@ distro:
 	cp README.txt build/deliv/MR-Demo
 	tar -czf MR-Demo.tar.gz -C build/deliv MR-Demo
 	cd build/deliv && zip -rq ../../MR-Demo.zip MR-Demo
+
+# Hive
+make-hive-bucket:
+	aws s3 mb s3://${aws.hive.bucket_name}
+
+# Upload same data to specific directory for hive to use
+upload-hive-input-aws: make-hive-bucket
+	aws s3 sync ${local.hive.input} s3://${aws.hive.bucket_name}/${aws.hive.input}
+
+upload-hive-script: make-hive-bucket
+	aws s3 sync ${local.hive.script} s3://${aws.hive.bucket_name}/${aws.hive.script}
+
+aws-hive-cluster:
+	aws emr create-cluster \
+	--name "CS6240 cluster ${aws.hive.application_type}" \
+	--log-uri s3://${aws.hive.bucket_name}/hive/logs \
+	--release-label ${aws.emr.hive.release} \
+	--applications Name=${aws.emr.hive.applications} \
+	--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
+	--use-default-roles
+
+# Manually create hive step
