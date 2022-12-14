@@ -8,6 +8,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.LogManager;
@@ -37,8 +39,8 @@ public class DataProcessingDriver extends Configured implements Tool {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
-        MultipleOutputs.addNamedOutput(job, "test", TextOutputFormat.class, Text.class, NullWritable.class);
-        MultipleOutputs.addNamedOutput(job, "train", TextOutputFormat.class, Text.class, NullWritable.class);
+        MultipleOutputs.addNamedOutput(job, "test", TextOutputFormat.class, Text.class, Text.class);
+        MultipleOutputs.addNamedOutput(job, "train", TextOutputFormat.class, Text.class, Text.class);
         FileOutputFormat.setOutputPath(job, new Path(args[2]));
 
         int res = job.waitForCompletion(true) ? 0 : 1;
@@ -49,6 +51,7 @@ public class DataProcessingDriver extends Configured implements Tool {
         if (args.length != 3) {
             throw new Error("Three arguments required:\n<lyric-input-dir> <genre-input-dir> <output-dir>");
         }
+
         try {
             ToolRunner.run(new DataProcessingDriver(), args);
         } catch (final Exception e) {

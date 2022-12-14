@@ -30,6 +30,7 @@ aws.input=input
 aws.output=output
 aws.log.dir=log
 aws.instance.type=m4.xlarge
+
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
